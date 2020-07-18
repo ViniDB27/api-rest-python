@@ -21,6 +21,16 @@ hoteis = [
     }
 ]
 
+
+class HotelModel:
+    def __init__(self, hotel_id, name, estrelas, diaria):
+        self.hotel_id = hotel_id
+        self.name = name
+        self.estrelas = estrelas
+        self.diaria = diaria
+
+
+
 class Hoteis(Resource):
     def get(self):
         return hoteis
@@ -58,17 +68,15 @@ class Hotel(Resource):
 
     def put(self, hotel_id):
         dados = Hotel.argumentos.parse_args()
-        novo_hotel = {
-            'hotel_id': hotel_id,
-            'name': dados['name'],
-            'estrelas': dados['estrelas'],
-            'diaria': dados['diaria']
-        }
+        novo_hotel = {'hotel_id': hotel_id, **dados}
         hotel = Hotel.find_hotel(hotel_id)
         if hotel:
             hotel.update(novo_hotel)
-        else:
-            pass
+            return novo_hotel, 200
+        hoteis.append(novo_hotel)
+        return novo_hotel, 201
 
-    def delet(self, hotel_id):
-        pass
+    def delete(self, hotel_id):
+        global hoteis
+        hoteis = [hotel for hotel in hoteis if hotel['hotel_id'] != hotel_id]
+        return {'message':'hotel deleted'}
