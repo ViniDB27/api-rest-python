@@ -1,4 +1,5 @@
 from flask_restful import Resource, reqparse
+from model.hotel import HotelModel
 
 hoteis = [
     {
@@ -21,16 +22,6 @@ hoteis = [
     }
 ]
 
-
-class HotelModel:
-    def __init__(self, hotel_id, name, estrelas, diaria):
-        self.hotel_id = hotel_id
-        self.name = name
-        self.estrelas = estrelas
-        self.diaria = diaria
-
-
-
 class Hoteis(Resource):
     def get(self):
         return hoteis
@@ -41,42 +32,36 @@ class Hotel(Resource):
     argumentos.add_argument('estrelas')
     argumentos.add_argument('diaria')
 
-    def find_hotel(hotel_id):
-        for hotel in hoteis:
-            if hotel['hotel_id'] == hotel_id:
-                return hotel 
-        return None
 
     def get(self, hotel_id):
-        hotel = Hotel.find_hotel(hotel_id)
+        hotel = HotelModel.find_hotel(hotel_id)
         if hotel:
-            return hotel
+            return hotel.json()
         else:
             return {'message':'hotel not found'}, 404
 
     def post(self, hotel_id):
+        if HotelModel.find_hotel(hotel_id):
+            return {'message':'hotel {} alread exist'.format(hotel_id)}, 400
         dados = Hotel.argumentos.parse_args()
-        novo_hotel = {
-            'hotel_id': hotel_id,
-            'name': dados['name'],
-            'estrelas': dados['estrelas'],
-            'diaria': dados['diaria']
-        }
-
-        hoteis.append(novo_hotel)
-        return novo_hotel
+        hotel = HotelModel(hotel_id, **dados)
+        hotel.save_hotel()
+        return hotel.json()
 
     def put(self, hotel_id):
-        dados = Hotel.argumentos.parse_args()
-        novo_hotel = {'hotel_id': hotel_id, **dados}
-        hotel = Hotel.find_hotel(hotel_id)
+        dados = Hotel.argumentos.parse_args()        
+        hotel = HotelModel.find_hotel(hotel_id)
         if hotel:
-            hotel.update(novo_hotel)
-            return novo_hotel, 200
-        hoteis.append(novo_hotel)
-        return novo_hotel, 201
+            hotel.update_hotel(**dados)
+            hotel.save_hotel()
+            return hotel.json(), 200
+        hotel = HotelModel(hotel_id, **dados)
+        hotel.save_hotel()
+        return hotel.json(), 201
 
     def delete(self, hotel_id):
-        global hoteis
-        hoteis = [hotel for hotel in hoteis if hotel['hotel_id'] != hotel_id]
-        return {'message':'hotel deleted'}
+        hotel = HotelModel.find_hotel(hotel_id)
+        if hotel:
+            hotel.delete_hotel()
+            return {'message':'hotel {} deleted'.format(hotel_id)}
+        return {'message':'hotel not found'}
